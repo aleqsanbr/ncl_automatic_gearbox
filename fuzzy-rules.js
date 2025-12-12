@@ -21,11 +21,13 @@ export const getRules = (mode) => {
 
       { conditions: ['speed.veryHigh', 'rpm.low'], gear: 7, priority: 90 },
       { conditions: ['speed.veryHigh', 'rpm.idle'], gear: 7, priority: 85 },
+      { conditions: ['speed.veryHigh', 'rpm.medium'], gear: 7, priority: 80 },
 
-      { conditions: ['brake.medium'], gear: 'downshift', priority: 70 },
-      { conditions: ['brake.heavy'], gear: 'downshift', priority: 80 },
+      { conditions: ['brake.heavy'], gear: 'downshift', priority: 95 },
+      { conditions: ['brake.medium'], gear: 'downshift', priority: 85 },
+      { conditions: ['brake.light'], gear: 'downshift', priority: 70 },
 
-      { conditions: ['rpm.veryHigh'], gear: 'upshift', priority: 95 }
+      { conditions: ['rpm.veryHigh'], gear: 'upshift', priority: 98 }
     ];
   } else {
     return [
@@ -43,15 +45,18 @@ export const getRules = (mode) => {
 
       { conditions: ['speed.high', 'rpm.medium'], gear: 5, priority: 85 },
 
+      // В Sport режиме держим передачи 5-6 для динамики
+      { conditions: ['speed.veryHigh', 'rpm.low'], gear: 5, priority: 90 },
       { conditions: ['speed.veryHigh', 'rpm.medium'], gear: 6, priority: 85 },
-      { conditions: ['speed.veryHigh', 'rpm.low'], gear: 6, priority: 80 },
 
-      { conditions: ['speed.veryHigh', 'rpm.high'], gear: 7, priority: 90 },
+      // 7 передача только при очень высоких оборотах (экономия топлива)
+      { conditions: ['speed.veryHigh', 'rpm.veryHigh'], gear: 7, priority: 80 },
 
-      { conditions: ['brake.medium'], gear: 'downshift', priority: 70 },
-      { conditions: ['brake.heavy'], gear: 'downshift', priority: 80 },
+      { conditions: ['brake.heavy'], gear: 'downshift', priority: 95 },
+      { conditions: ['brake.medium'], gear: 'downshift', priority: 85 },
+      { conditions: ['brake.light'], gear: 'downshift', priority: 70 },
 
-      { conditions: ['rpm.veryHigh'], gear: 'upshift', priority: 95 }
+      { conditions: ['rpm.veryHigh'], gear: 'upshift', priority: 98 }
     ];
   }
 };

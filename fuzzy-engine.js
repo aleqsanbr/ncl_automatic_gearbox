@@ -70,17 +70,64 @@ export class FuzzyGearbox {
     this.currentGear = 1;
     this.mode = 'D';
     this.lastSwitch = Date.now();
-    this.switchDelay = 300;
+    this.switchDelay = 300; // Уменьшено для более отзывчивых переключений
+    this.lastRecommended = 1;
+    this.recommendedCounter = 0;
   }
 
   getRecommendedGear(inputs) {
     const inference = fuzzyInference(inputs, this.mode, this.currentGear);
-    const recommended = defuzzify(inference.memberships, this.currentGear);
+    let recommended = defuzzify(inference.memberships, this.currentGear);
+
+    // КРИТИЧНО: При сильном торможении - ФОРСИРОВАННЫЙ downshift
+    if (inputs.brake > 70) {
+      // Рассчитываем оптимальную передачу для текущей скорости при торможении
+      let targetGear;
+      if (inputs.speed < 15) targetGear = 1;
+      else if (inputs.speed < 30) targetGear = 2;
+      else if (inputs.speed < 50) targetGear = 3;
+      else if (inputs.speed < 80) targetGear = 4;
+      else targetGear = 5;
+
+      if (targetGear < this.currentGear) {
+        this.currentGear = targetGear;
+        this.lastRecommended = targetGear;
+        this.recommendedCounter = 0;
+        this.lastSwitch = Date.now();
+        return {
+          currentGear: this.currentGear,
+          recommended: targetGear,
+          inference
+        };
+      }
+    }
+
+    // В Sport режиме НИКОГДА не используем 7 передачу на скорости <200
+    if (this.mode === 'S' && inputs.speed < 200) {
+      recommended = Math.min(recommended, 6);
+    }
+
+    // В Sport режиме на высоких скоростях держим 5-6 передачу
+    if (this.mode === 'S' && inputs.speed > 150 && this.currentGear >= 6) {
+      recommended = Math.min(recommended, 6);
+    }
+
+    if (recommended === this.lastRecommended) {
+      this.recommendedCounter++;
+    } else {
+      this.lastRecommended = recommended;
+      this.recommendedCounter = 0;
+    }
 
     const now = Date.now();
-    if (recommended !== this.currentGear && now - this.lastSwitch >= this.switchDelay) {
+    const timeSinceLastSwitch = now - this.lastSwitch;
+
+    const shouldSwitch = recommended !== this.currentGear && timeSinceLastSwitch >= this.switchDelay && this.recommendedCounter >= 2;
+
+    if (shouldSwitch) {
       this.currentGear = recommended;
       this.lastSwitch = now;
+      this.recommendedCounter = 0;
     }
 
     return {
@@ -92,5 +139,7 @@ export class FuzzyGearbox {
 
   setMode(mode) {
     this.mode = mode;
+    this.recommendedCounter = 0;
+    this.lastSwitch = 0;
   }
 }

@@ -30,10 +30,10 @@ export const createFuzzySets = (mode) => {
         veryHigh: (x) => trapezoid(x, 2500, 3500, 6000, 6000)
       },
       brake: {
-        none: (x) => trapezoid(x, 0, 0, 10, 20),
-        light: (x) => triangle(x, 10, 30, 50),
-        medium: (x) => triangle(x, 40, 60, 80),
-        heavy: (x) => trapezoid(x, 70, 85, 100, 100)
+        none: (x) => trapezoid(x, 0, 0, 5, 15),
+        light: (x) => triangle(x, 10, 25, 40),
+        medium: (x) => triangle(x, 35, 55, 75),
+        heavy: (x) => trapezoid(x, 65, 80, 100, 100)
       }
     };
   } else {
@@ -53,10 +53,10 @@ export const createFuzzySets = (mode) => {
         veryHigh: (x) => trapezoid(x, 5000, 5500, 6500, 6500)
       },
       brake: {
-        none: (x) => trapezoid(x, 0, 0, 10, 20),
-        light: (x) => triangle(x, 10, 30, 50),
-        medium: (x) => triangle(x, 40, 60, 80),
-        heavy: (x) => trapezoid(x, 70, 85, 100, 100)
+        none: (x) => trapezoid(x, 0, 0, 5, 15),
+        light: (x) => triangle(x, 10, 25, 40),
+        medium: (x) => triangle(x, 35, 55, 75),
+        heavy: (x) => trapezoid(x, 65, 80, 100, 100)
       }
     };
   }

@@ -55,6 +55,7 @@ const handleKeyboard = (e) => {
   const brakeSlider = document.getElementById('brakeSlider');
 
   switch(e.key.toLowerCase()) {
+    case 'я':
     case 'z':
       car.setThrottle(Math.max(0, car.throttle - 2));
       gasSlider.value = car.throttle;
@@ -62,6 +63,7 @@ const handleKeyboard = (e) => {
         brakeSlider.value = 0;
       }
       break;
+    case 'ч':
     case 'x':
       car.setThrottle(Math.min(100, car.throttle + 2));
       gasSlider.value = car.throttle;
@@ -69,6 +71,7 @@ const handleKeyboard = (e) => {
         brakeSlider.value = 0;
       }
       break;
+    case 'б':
     case ',':
     case '<':
       car.setBrake(Math.max(0, car.brake - 5));
@@ -77,6 +80,7 @@ const handleKeyboard = (e) => {
         gasSlider.value = 0;
       }
       break;
+    case 'ю':
     case '.':
     case '>':
       car.setBrake(Math.min(100, car.brake + 5));
