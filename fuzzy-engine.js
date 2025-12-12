@@ -69,65 +69,53 @@ export class FuzzyGearbox {
   constructor() {
     this.currentGear = 1;
     this.mode = 'D';
-    this.lastSwitch = Date.now();
-    this.switchDelay = 300; // Уменьшено для более отзывчивых переключений
     this.lastRecommended = 1;
-    this.recommendedCounter = 0;
+    this.sameCounter = 0;
   }
 
   getRecommendedGear(inputs) {
     const inference = fuzzyInference(inputs, this.mode, this.currentGear);
     let recommended = defuzzify(inference.memberships, this.currentGear);
 
-    // КРИТИЧНО: При сильном торможении - ФОРСИРОВАННЫЙ downshift
-    if (inputs.brake > 70) {
-      // Рассчитываем оптимальную передачу для текущей скорости при торможении
-      let targetGear;
-      if (inputs.speed < 15) targetGear = 1;
-      else if (inputs.speed < 30) targetGear = 2;
-      else if (inputs.speed < 50) targetGear = 3;
-      else if (inputs.speed < 80) targetGear = 4;
-      else targetGear = 5;
+    const gearSpeeds = [
+      { min: 0, max: 60 },
+      { min: 10, max: 100 },
+      { min: 30, max: 140 },
+      { min: 50, max: 170 },
+      { min: 70, max: 190 },
+      { min: 90, max: 210 },
+      { min: 110, max: 240 }
+    ];
 
-      if (targetGear < this.currentGear) {
-        this.currentGear = targetGear;
-        this.lastRecommended = targetGear;
-        this.recommendedCounter = 0;
-        this.lastSwitch = Date.now();
-        return {
-          currentGear: this.currentGear,
-          recommended: targetGear,
-          inference
-        };
-      }
-    }
-
-    // В Sport режиме НИКОГДА не используем 7 передачу на скорости <200
-    if (this.mode === 'S' && inputs.speed < 200) {
+    if (this.mode === 'S') {
       recommended = Math.min(recommended, 6);
     }
 
-    // В Sport режиме на высоких скоростях держим 5-6 передачу
-    if (this.mode === 'S' && inputs.speed > 150 && this.currentGear >= 6) {
-      recommended = Math.min(recommended, 6);
+    if (inputs.brake > 80) {
+      if (inputs.speed < 20) recommended = Math.min(recommended, 1);
+      else if (inputs.speed < 40) recommended = Math.min(recommended, 2);
+      else if (inputs.speed < 70) recommended = Math.min(recommended, 3);
+      else if (inputs.speed < 100) recommended = Math.min(recommended, 4);
+      else if (inputs.speed < 140) recommended = Math.min(recommended, 5);
+    }
+
+    if (inputs.brake > 0 && recommended > this.currentGear) {
+      recommended = this.currentGear;
     }
 
     if (recommended === this.lastRecommended) {
-      this.recommendedCounter++;
+      this.sameCounter++;
     } else {
       this.lastRecommended = recommended;
-      this.recommendedCounter = 0;
+      this.sameCounter = 0;
     }
 
-    const now = Date.now();
-    const timeSinceLastSwitch = now - this.lastSwitch;
+    // Для downshift нужно меньше подтверждений (быстрее реакция)
+    const threshold = recommended < this.currentGear ? 3 : 5;
 
-    const shouldSwitch = recommended !== this.currentGear && timeSinceLastSwitch >= this.switchDelay && this.recommendedCounter >= 2;
-
-    if (shouldSwitch) {
+    if (recommended !== this.currentGear && this.sameCounter >= threshold) {
       this.currentGear = recommended;
-      this.lastSwitch = now;
-      this.recommendedCounter = 0;
+      this.sameCounter = 0;
     }
 
     return {
@@ -139,7 +127,10 @@ export class FuzzyGearbox {
 
   setMode(mode) {
     this.mode = mode;
-    this.recommendedCounter = 0;
-    this.lastSwitch = 0;
+    this.sameCounter = 0;
+
+    if (mode === 'S' && this.currentGear > 6) {
+      this.currentGear = 6;
+    }
   }
 }

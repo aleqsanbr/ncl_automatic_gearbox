@@ -6,12 +6,8 @@ export class CarSimulator {
     this.rpm = 900;
     this.throttle = 0;
     this.brake = 0;
-    this.lastSpeed = 0;
 
     this.fuzzy = new FuzzyGearbox();
-    this.isShifting = false;
-    this.shiftTime = 0;
-    this.targetRPM = 900;
   }
 
   getGearRatios() {
@@ -20,51 +16,42 @@ export class CarSimulator {
 
   getGearSpeeds() {
     return [
-      { min: 0, max: 7 },
-      { min: 5, max: 20 },
-      { min: 15, max: 32 },
-      { min: 28, max: 45 },
-      { min: 40, max: 58 },
-      { min: 53, max: 70 },
-      { min: 65, max: 220 }
+      { min: 0, max: 60 },
+      { min: 10, max: 100 },
+      { min: 30, max: 140 },
+      { min: 50, max: 170 },
+      { min: 70, max: 190 },
+      { min: 90, max: 210 },
+      { min: 110, max: 240 }
     ];
   }
 
   getBaseRPM() {
     if (this.fuzzy.mode === 'D') {
-      return [900, 1100, 1300, 1400, 1400, 1400, 1200];
+      return [900, 1200, 1600, 2000, 2200, 2200, 2000];
     } else {
-      // Sport: значительно более высокие обороты для динамики
-      return [2000, 2500, 3500, 3500, 4000, 4500, 4000];
+      return [1500, 2000, 2500, 3000, 3500, 4000, 4500];
     }
   }
 
-  getShiftRPM() {
+  getMaxRPM() {
     if (this.fuzzy.mode === 'D') {
-      return [1800, 1800, 1700, 1600, 1500, 1400, 1300];
+      return [3500, 3800, 3800, 3800, 3500, 3200, 3000];
     } else {
-      // Sport: держим обороты высокими для максимальной мощности
-      return [4000, 4200, 4500, 4800, 5200, 5500, 5800];
+      return [5500, 5500, 5500, 5500, 5500, 5500, 6000];
     }
   }
 
   calculateRPMForSpeed(speed, gear) {
     if (speed < 1) return this.getBaseRPM()[gear - 1];
 
-    const gearSpeeds = this.getGearSpeeds();
-    const baseRPMs = this.getBaseRPM();
-    const shiftRPMs = this.getShiftRPM();
+    const gearSpeeds = this.getGearSpeeds()[gear - 1];
+    const baseRPM = this.getBaseRPM()[gear - 1];
+    const maxRPM = this.getMaxRPM()[gear - 1];
 
-    const gearData = gearSpeeds[gear - 1];
-    const baseRPM = baseRPMs[gear - 1];
-    const shiftRPM = shiftRPMs[gear - 1];
+    const ratio = Math.min(1, Math.max(0, (speed - gearSpeeds.min) / (gearSpeeds.max - gearSpeeds.min)));
 
-    // Линейная интерполяция RPM по скорости
-    const speedRatio = (speed - gearData.min) / (gearData.max - gearData.min);
-    const calculatedRPM = baseRPM + (shiftRPM - baseRPM) * speedRatio;
-
-    // Ограничиваем RPM только снизу и сверху
-    return Math.max(baseRPM * 0.8, Math.min(6500, calculatedRPM));
+    return baseRPM + (maxRPM - baseRPM) * ratio;
   }
 
   update(deltaTime) {
@@ -79,80 +66,37 @@ export class CarSimulator {
     }
 
     const mass = 1200;
-    const powerFactor = 85; // Баланс: реалистичный разгон + макс скорость 210+ км/ч
+    const powerFactor = 85;
     const rollingResistance = 30;
-    const airResistanceCoeff = 0.25;
-
-    const throttleForce = this.throttle * powerFactor;
-    const airResistance = airResistanceCoeff * this.speed * this.speed;
-    const brakeForce = this.brake * 60;
+    const airResistanceCoeff = 0.3;
 
     const gear = this.fuzzy.currentGear;
-    const engineBrakingFactor = this.throttle === 0 ? (8 - gear) * 3 : 0;
+    const gearRatio = this.getGearRatios()[gear - 1];
+    const gearEfficiency = 1.0 / gearRatio;
+
+    const throttleForce = this.throttle * powerFactor * gearEfficiency;
+    const airResistance = airResistanceCoeff * this.speed * this.speed;
+    const brakeForce = this.brake * 80;
+
+    const engineBrakingFactor = this.throttle === 0 ? gearRatio * 100 : 0;
 
     const netForce = throttleForce - airResistance - rollingResistance - brakeForce - engineBrakingFactor;
     const acceleration = netForce / mass;
 
-    // Правильная физика: acceleration в м/с², dt в секундах
-    // Конвертируем м/с в км/ч: умножаем на 3.6
     this.speed += acceleration * dt * 3.6;
-    this.speed = Math.max(0, Math.min(220, this.speed));
+    this.speed = Math.max(0, Math.min(240, this.speed));
 
     const inputs = {
       speed: this.speed,
       rpm: this.rpm,
-      brake: this.brake
+      brake: this.brake,
+      throttle: this.throttle
     };
 
     const result = this.fuzzy.getRecommendedGear(inputs);
 
-    // КРИТИЧНО: При торможении или снижении скорости ЗАПРЕЩАЕМ upshift
-    const isSlowingDown = this.speed < this.lastSpeed - 0.1;
-    const isActiveBraking = this.brake > 20;
-
-    if ((isSlowingDown || isActiveBraking) && result.recommended > this.fuzzy.currentGear) {
-      // ПОЛНОСТЬЮ блокируем любой upshift при торможении
-      result.recommended = this.fuzzy.currentGear;
-      this.fuzzy.lastRecommended = this.fuzzy.currentGear;
-      this.fuzzy.recommendedCounter = 0;
-    }
-    this.lastSpeed = this.speed;
-
-    if (result.currentGear !== result.recommended && !this.isShifting) {
-      this.isShifting = true;
-      this.shiftTime = 0;
-    }
-
-    if (this.isShifting) {
-      this.shiftTime += dt;
-
-      if (this.shiftTime < 0.15) {
-        this.rpm += (this.targetRPM * 0.7 - this.rpm) * dt * 8;
-      } else if (this.shiftTime < 0.3) {
-        const newTargetRPM = this.calculateRPMForSpeed(this.speed, this.fuzzy.currentGear);
-        this.rpm += (newTargetRPM - this.rpm) * dt * 6;
-      } else {
-        this.isShifting = false;
-        this.shiftTime = 0;
-      }
-
-      return result;
-    }
-
-    this.targetRPM = this.calculateRPMForSpeed(this.speed, gear);
-
-    // КРИТИЧНО: RPM всегда соответствует ТЕКУЩЕЙ передаче, а не рекомендованной
-    // Это предотвращает дергание RPM когда система рекомендует переключение
-    const targetRPMForCurrentGear = this.targetRPM;
-
-    if (this.brake > 30) {
-      // При торможении RPM падает ниже
-      this.rpm += (this.targetRPM * 0.8 - this.rpm) * dt * 5;
-    } else {
-      // Обычное сглаживание к целевому RPM для ТЕКУЩЕЙ передачи
-      this.rpm += (this.targetRPM - this.rpm) * dt * 4;
-    }
-
+    const targetRPM = this.calculateRPMForSpeed(this.speed, gear);
+    this.rpm += (targetRPM - this.rpm) * dt * 5;
     this.rpm = Math.max(800, Math.min(6500, this.rpm));
 
     return result;
@@ -160,17 +104,6 @@ export class CarSimulator {
 
   setMode(mode) {
     this.fuzzy.setMode(mode);
-    // КРИТИЧНО: При смене режима СРАЗУ пересчитываем передачу
-    const inputs = {
-      speed: this.speed,
-      rpm: this.rpm,
-      brake: this.brake
-    };
-    const result = this.fuzzy.getRecommendedGear(inputs);
-    // Форсируем переключение передачи
-    this.fuzzy.lastSwitch = 0;
-    this.fuzzy.recommendedCounter = 10;
-    // Пересчитываем RPM для новой передачи
     this.rpm = this.calculateRPMForSpeed(this.speed, this.fuzzy.currentGear);
   }
 
