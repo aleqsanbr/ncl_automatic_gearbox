@@ -1,4 +1,4 @@
-import { CarSimulator } from './car-simulator.js';
+import { CarSimulator } from './simulator.js';
 import { Gauge } from './gauges.js';
 
 let car = new CarSimulator();

@@ -112,7 +112,6 @@ input[type="range"] {
   height: 6px;
   background: #333;
   outline: none;
-  -webkit-appearance: none;
   border-radius: 3px;
 }
 

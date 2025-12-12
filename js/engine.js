@@ -1,5 +1,5 @@
-import { fuzzify } from './fuzzy-sets.js';
-import { getRules } from './fuzzy-rules.js';
+import { fuzzify } from './sets.js';
+import { getRules } from './rules.js';
 
 export const fuzzyInference = (inputs, mode, currentGear) => {
   const fuzzyInputs = fuzzify(inputs, mode);

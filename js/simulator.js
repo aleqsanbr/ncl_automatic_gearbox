@@ -1,4 +1,4 @@
-import { FuzzyGearbox } from './fuzzy-engine.js';
+import { FuzzyGearbox } from './engine.js';
 
 export class CarSimulator {
   constructor() {
