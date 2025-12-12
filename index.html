@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DSG Expert System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="dashboard">
+    <div class="gauges-container">
+      <canvas id="speedGauge" width="280" height="280"></canvas>
+      <div id="gearDisplay">1</div>
+      <canvas id="rpmGauge" width="280" height="280"></canvas>
+    </div>
+
+    <div class="sliders">
+      <div class="slider-group">
+        <label>Gas</label>
+        <input type="range" id="gasSlider" min="0" max="100" value="0" step="1">
+      </div>
+
+      <div class="buttons">
+        <button id="btnDrive">Drive</button>
+        <button id="btnSport">Sport</button>
+      </div>
+
+      <div class="slider-group">
+        <label>Brake</label>
+        <input type="range" id="brakeSlider" min="0" max="100" value="0" step="1">
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

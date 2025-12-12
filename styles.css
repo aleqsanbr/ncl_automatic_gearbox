@@ -1,0 +1,117 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0a0a0a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+
+.gauges-container {
+  display: flex;
+  gap: 60px;
+  align-items: center;
+  position: relative;
+}
+
+#gearDisplay {
+  font-size: 80px;
+  font-weight: 900;
+  color: #4dd0e1;
+  text-shadow: 0 0 30px #4dd0e1;
+  user-select: none;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.buttons button {
+  padding: 12px 40px;
+  background: transparent;
+  border: 2px solid #888;
+  border-radius: 8px;
+  color: #888;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.buttons button:hover {
+  border-color: #aaa;
+  color: #aaa;
+}
+
+.buttons button.active {
+  border-color: #4dd0e1;
+  color: #4dd0e1;
+}
+
+.sliders {
+  display: flex;
+  gap: 50px;
+}
+
+.slider-group {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slider-group label {
+  color: #666;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+input[type="range"] {
+  width: 100%;
+  height: 6px;
+  background: #333;
+  outline: none;
+  -webkit-appearance: none;
+  border-radius: 3px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #4dd0e1;
+  border: 2px solid #888;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px #4dd0e1;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #4dd0e1;
+  border: 2px solid #888;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px #4dd0e1;
+}
+
+canvas {
+  display: block;
+}
