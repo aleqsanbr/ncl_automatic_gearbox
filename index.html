@@ -3,10 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DSG Expert System</title>
+  <title>Automatic Gearbox Expert System</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="header">
+    <div class="car-model">Volkswagen Audi Group 7-speed DSG DQ200</div>
+    <div class="car-details">Volkswagen Golf Mk6 1.4 TSI</div>
+  </div>
+
   <div class="dashboard">
     <div class="gauges-container">
       <canvas id="speedGauge" width="280" height="280"></canvas>
@@ -30,6 +35,10 @@
         <input type="range" id="brakeSlider" min="0" max="100" value="0" step="1">
       </div>
     </div>
+  </div>
+
+  <div class="footer">
+    <a href="https://github.com/aleqsanbr/ncl_automatic_gearbox" target="_blank" rel="noopener noreferrer">GitHub</a>
   </div>
 
   <script type="module" src="main.js"></script>
