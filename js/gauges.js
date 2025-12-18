@@ -20,14 +20,12 @@ export class Gauge {
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Внешняя обводка
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
     ctx.strokeStyle = '#888';
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Деления и цифры
     const startAngle = Math.PI * 0.65;
     const endAngle = Math.PI * 2.35;
     const angleRange = endAngle - startAngle;
@@ -66,7 +64,6 @@ export class Gauge {
       }
     }
 
-    // Красная зона на тахометре
     if (this.isRPM) {
       const redStart = startAngle + (angleRange * 6.5) / 8;
       ctx.beginPath();
@@ -76,7 +73,6 @@ export class Gauge {
       ctx.stroke();
     }
 
-    // Стрелка
     const valueAngle = startAngle + (angleRange * this.currentValue) / this.maxValue;
     const needleLength = radius - 25;
     const needleX = centerX + Math.cos(valueAngle) * needleLength;
@@ -99,7 +95,6 @@ export class Gauge {
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // Центральный круг
     ctx.beginPath();
     ctx.arc(centerX, centerY, 50, 0, 2 * Math.PI);
     ctx.strokeStyle = '#4dd0e1';
@@ -109,7 +104,6 @@ export class Gauge {
     ctx.fillStyle = 'rgba(77, 208, 225, 0.1)';
     ctx.fill();
 
-    // Значение внутри круга
     ctx.fillStyle = '#4dd0e1';
     ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'center';
@@ -117,7 +111,6 @@ export class Gauge {
     const displayValue = this.isRPM ? Math.round(this.currentValue / 100) / 10 : Math.round(this.currentValue);
     ctx.fillText(displayValue, centerX, centerY - 5);
 
-    // Единица измерения
     ctx.font = '11px Arial';
     ctx.fillStyle = '#666';
     ctx.fillText(this.unit, centerX, centerY + 20);

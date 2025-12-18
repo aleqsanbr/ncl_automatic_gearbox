@@ -54,7 +54,7 @@ const handleKeyboard = (e) => {
   const gasSlider = document.getElementById('gasSlider');
   const brakeSlider = document.getElementById('brakeSlider');
 
-  switch(e.key.toLowerCase()) {
+  switch (e.key.toLowerCase()) {
     case 'я':
     case 'z':
       car.setThrottle(Math.max(0, car.throttle - 2));
@@ -103,9 +103,9 @@ const animate = () => {
   rpmGauge.draw(car.rpm);
 
   if (result) {
-    gearDisplay.textContent = car.fuzzy.currentGear;
+    gearDisplay.textContent = car.fuzzy.currentGear === 0 ? 'N' : car.fuzzy.currentGear;
   } else {
-    gearDisplay.textContent = '1';
+    gearDisplay.textContent = 'N';
   }
 
   requestAnimationFrame(animate);

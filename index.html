@@ -1,46 +1,46 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Automatic Gearbox Expert System</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="header">
-    <div class="car-model">Volkswagen Audi Group 7-speed DSG DQ200</div>
-    <div class="car-details">Volkswagen Golf Mk6 1.4 TSI</div>
-  </div>
-
-  <div class="dashboard">
-    <div class="gauges-container">
-      <canvas id="speedGauge" width="280" height="280"></canvas>
-      <div id="gearDisplay">1</div>
-      <canvas id="rpmGauge" width="280" height="280"></canvas>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Automatic Gearbox Expert System</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="header">
+      <div class="car-model">Volkswagen Audi Group 7-speed DSG DQ200</div>
+      <div class="car-details">Volkswagen Golf Mk6 1.4 TSI</div>
     </div>
 
-    <div class="sliders">
-      <div class="slider-group">
-        <label>Gas [Z] / [X]</label>
-        <input type="range" id="gasSlider" min="0" max="100" value="0" step="1">
+    <div class="dashboard">
+      <div class="gauges-container">
+        <canvas id="speedGauge" width="280" height="280"></canvas>
+        <div id="gearDisplay">1</div>
+        <canvas id="rpmGauge" width="280" height="280"></canvas>
       </div>
 
-      <div class="buttons">
-        <button id="btnDrive">Drive</button>
-        <button id="btnSport">Sport</button>
-      </div>
+      <div class="sliders">
+        <div class="slider-group">
+          <label>Gas [Z] / [X]</label>
+          <input type="range" id="gasSlider" min="0" max="100" value="0" step="1" />
+        </div>
 
-      <div class="slider-group">
-        <label>Brake [&lt;] / [&gt;]</label>
-        <input type="range" id="brakeSlider" min="0" max="100" value="0" step="1">
+        <div class="buttons">
+          <button id="btnDrive">Drive</button>
+          <button id="btnSport">Sport</button>
+        </div>
+
+        <div class="slider-group">
+          <label>Brake [&lt;] / [&gt;]</label>
+          <input type="range" id="brakeSlider" min="0" max="100" value="0" step="1" />
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="footer">
-    <a href="https://github.com/aleqsanbr/ncl_automatic_gearbox" target="_blank" rel="noopener noreferrer">GitHub</a>
-  </div>
+    <div class="footer">
+      <a href="https://github.com/aleqsanbr/ncl_automatic_gearbox" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </div>
 
-  <script type="module" src="js/main.js"></script>
-</body>
+    <script type="module" src="js/main.js"></script>
+  </body>
 </html>

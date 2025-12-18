@@ -8,54 +8,62 @@ export class CarSimulator {
     this.brake = 0;
 
     this.fuzzy = new FuzzyGearbox();
+    this.isShifting = false;
+    this.shiftTimer = 0;
+    this.totalTime = 0;
   }
 
   getGearRatios() {
-    return [3.5, 2.1, 1.4, 1.0, 0.8, 0.65, 0.55];
+    return [0, 3.5, 2.1, 1.4, 1.0, 0.8, 0.65, 0.55];
   }
 
-  getGearSpeeds() {
-    return [
-      { min: 0, max: 60 },
-      { min: 10, max: 100 },
-      { min: 30, max: 140 },
-      { min: 50, max: 170 },
-      { min: 70, max: 190 },
-      { min: 90, max: 210 },
-      { min: 110, max: 240 }
-    ];
+  getIdleRPM() {
+    return this.fuzzy.mode === 'D' ? 900 : 2000;
   }
 
-  getBaseRPM() {
-    if (this.fuzzy.mode === 'D') {
-      return [900, 1200, 1600, 2000, 2200, 2200, 2000];
-    } else {
-      return [1500, 2000, 2500, 3000, 3500, 4000, 4500];
+  getTargetRPMFromThrottle(throttle) {
+    const idleRPM = this.getIdleRPM();
+    const maxRPM = this.fuzzy.mode === 'D' ? 4000 : 6500;
+
+    if (throttle < 5) {
+      return idleRPM;
     }
+
+    return idleRPM + (maxRPM - idleRPM) * (throttle / 100);
   }
 
-  getMaxRPM() {
-    if (this.fuzzy.mode === 'D') {
-      return [3500, 3800, 3800, 3800, 3500, 3200, 3000];
-    } else {
-      return [5500, 5500, 5500, 5500, 5500, 5500, 6000];
-    }
+  calculateSpeedFromRPM(rpm, gear) {
+    if (gear === 0) return this.speed;
+
+    const gearRatio = this.getGearRatios()[gear];
+    const wheelCircumference = 2.0;
+    const finalDriveRatio = 3.9;
+
+    const wheelRPM = rpm / (gearRatio * finalDriveRatio);
+    const speedMetersPerMinute = wheelRPM * wheelCircumference;
+    const speedKmH = (speedMetersPerMinute * 60) / 1000;
+
+    return speedKmH;
   }
 
-  calculateRPMForSpeed(speed, gear) {
-    if (speed < 1) return this.getBaseRPM()[gear - 1];
+  calculateRPMFromSpeed(speed, gear) {
+    if (gear === 0) return this.getIdleRPM();
+    if (speed < 0.1) return this.getIdleRPM();
 
-    const gearSpeeds = this.getGearSpeeds()[gear - 1];
-    const baseRPM = this.getBaseRPM()[gear - 1];
-    const maxRPM = this.getMaxRPM()[gear - 1];
+    const gearRatio = this.getGearRatios()[gear];
+    const wheelCircumference = 2.0;
+    const finalDriveRatio = 3.9;
 
-    const ratio = Math.min(1, Math.max(0, (speed - gearSpeeds.min) / (gearSpeeds.max - gearSpeeds.min)));
+    const speedMetersPerMinute = (speed * 1000) / 60;
+    const wheelRPM = speedMetersPerMinute / wheelCircumference;
+    const rpm = wheelRPM * gearRatio * finalDriveRatio;
 
-    return baseRPM + (maxRPM - baseRPM) * ratio;
+    return Math.max(this.getIdleRPM(), rpm);
   }
 
   update(deltaTime) {
     const dt = deltaTime / 1000;
+    this.totalTime += dt;
 
     if (this.throttle > 0 && this.brake > 0) {
       if (this.throttle > this.brake) {
@@ -65,27 +73,6 @@ export class CarSimulator {
       }
     }
 
-    const mass = 1200;
-    const powerFactor = 85;
-    const rollingResistance = 30;
-    const airResistanceCoeff = 0.3;
-
-    const gear = this.fuzzy.currentGear;
-    const gearRatio = this.getGearRatios()[gear - 1];
-    const gearEfficiency = 1.0 / gearRatio;
-
-    const throttleForce = this.throttle * powerFactor * gearEfficiency;
-    const airResistance = airResistanceCoeff * this.speed * this.speed;
-    const brakeForce = this.brake * 80;
-
-    const engineBrakingFactor = this.throttle === 0 ? gearRatio * 100 : 0;
-
-    const netForce = throttleForce - airResistance - rollingResistance - brakeForce - engineBrakingFactor;
-    const acceleration = netForce / mass;
-
-    this.speed += acceleration * dt * 3.6;
-    this.speed = Math.max(0, Math.min(240, this.speed));
-
     const inputs = {
       speed: this.speed,
       rpm: this.rpm,
@@ -93,10 +80,90 @@ export class CarSimulator {
       throttle: this.throttle
     };
 
-    const result = this.fuzzy.getRecommendedGear(inputs);
+    const previousGear = this.fuzzy.currentGear;
+    const result = this.fuzzy.getRecommendedGear(inputs, this.totalTime);
+    const gear = this.fuzzy.currentGear;
 
-    const targetRPM = this.calculateRPMForSpeed(this.speed, gear);
-    this.rpm += (targetRPM - this.rpm) * dt * 5;
+    if (previousGear !== gear && !this.isShifting) {
+      this.isShifting = true;
+      this.shiftTimer = 0.3;
+
+      if (gear > 0) {
+        const targetRPMForNewGear = this.calculateRPMFromSpeed(this.speed, gear);
+        this.rpm += (targetRPMForNewGear - this.rpm) * 0.5;
+      }
+    }
+
+    if (this.isShifting) {
+      this.shiftTimer -= dt;
+      if (this.shiftTimer <= 0) {
+        this.isShifting = false;
+      }
+
+      if (gear > 0) {
+        const targetRPMForGear = this.calculateRPMFromSpeed(this.speed, gear);
+        this.rpm += (targetRPMForGear - this.rpm) * dt * 8;
+      }
+    }
+
+    if (this.brake > 0) {
+      const maxBrakeDeceleration = 35;
+      const brakeDeceleration = (this.brake / 100) * maxBrakeDeceleration;
+      this.speed -= brakeDeceleration * dt;
+      this.speed = Math.max(0, this.speed);
+
+      if (gear > 0) {
+        this.rpm = this.calculateRPMFromSpeed(this.speed, gear);
+      } else {
+        const targetIdleRPM = this.getIdleRPM();
+        this.rpm += (targetIdleRPM - this.rpm) * dt * 5;
+      }
+    } else if (gear === 0) {
+      const targetRPM = this.getTargetRPMFromThrottle(this.throttle);
+      this.rpm += (targetRPM - this.rpm) * dt * 5;
+
+      const rollingResistance = 15;
+      const airResistance = 0.15 * this.speed * this.speed;
+      const deceleration = (rollingResistance + airResistance) / 1200;
+      this.speed -= deceleration * dt * 3.6;
+      this.speed = Math.max(0, this.speed);
+    } else {
+      const targetRPM = this.getTargetRPMFromThrottle(this.throttle);
+
+      const rpmChangeRate = this.throttle > 0 ? 800 : 1500;
+      this.rpm += (targetRPM - this.rpm) * dt * (rpmChangeRate / 1000);
+
+      const theoreticalSpeed = this.calculateSpeedFromRPM(this.rpm, gear);
+
+      const mass = 1200;
+      const rollingResistance = 30;
+      const airResistance = 0.25 * this.speed * this.speed;
+
+      const gearRatio = this.getGearRatios()[gear];
+      const engineBrakingBase = this.throttle === 0 ? gearRatio * 400 : 0;
+      const speedFactor = Math.min(1, this.speed / 30);
+      const engineBraking = engineBrakingBase * speedFactor;
+
+      let acceleration = 0;
+
+      if (theoreticalSpeed > this.speed + 0.5) {
+        const rpmAboveIdle = Math.max(0, this.rpm - this.getIdleRPM());
+        const engineForce = rpmAboveIdle * gearRatio * 5.5;
+        const netForce = engineForce - rollingResistance - airResistance - engineBraking;
+        acceleration = netForce / mass;
+      } else {
+        const deceleration = (rollingResistance + airResistance + engineBraking) / mass;
+        acceleration = -deceleration;
+      }
+
+      this.speed += acceleration * dt * 3.6;
+      this.speed = Math.max(0, Math.min(240, this.speed));
+
+      if (this.speed < 0.5 && this.throttle < 5) {
+        this.speed = 0;
+      }
+    }
+
     this.rpm = Math.max(800, Math.min(6500, this.rpm));
 
     return result;
@@ -104,7 +171,11 @@ export class CarSimulator {
 
   setMode(mode) {
     this.fuzzy.setMode(mode);
-    this.rpm = this.calculateRPMForSpeed(this.speed, this.fuzzy.currentGear);
+    if (this.fuzzy.currentGear > 0) {
+      this.rpm = this.calculateRPMFromSpeed(this.speed, this.fuzzy.currentGear);
+    } else {
+      this.rpm = this.getIdleRPM();
+    }
   }
 
   setThrottle(value) {

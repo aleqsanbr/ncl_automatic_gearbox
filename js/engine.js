@@ -21,9 +21,9 @@ export const fuzzyInference = (inputs, mode, currentGear) => {
       let targetGear = rule.gear;
 
       if (targetGear === 'upshift') {
-        targetGear = Math.min(7, currentGear + 1);
+        targetGear = mode === 'S' ? Math.min(6, currentGear + 1) : Math.min(7, currentGear + 1);
       } else if (targetGear === 'downshift') {
-        targetGear = Math.max(1, currentGear - 1);
+        targetGear = Math.max(0, currentGear - 1);
       }
 
       if (!memberships[targetGear]) {
@@ -62,37 +62,64 @@ export const defuzzify = (memberships, currentGear) => {
   const result = numerator / denominator;
   const rounded = Math.round(result);
 
-  return Math.max(1, Math.min(7, rounded));
+  return Math.max(0, Math.min(7, rounded));
 };
 
 export class FuzzyGearbox {
   constructor() {
-    this.currentGear = 1;
+    this.currentGear = 0;
     this.mode = 'D';
-    this.lastRecommended = 1;
+    this.lastRecommended = 0;
     this.sameCounter = 0;
+    this.lastShiftTime = 0;
   }
 
-  getRecommendedGear(inputs) {
+  getRecommendedGear(inputs, currentTime = 0) {
+    if (inputs.throttle < 5 && this.currentGear > 1) {
+      if (inputs.speed < 10 && this.currentGear > 1) {
+        this.currentGear = 1;
+        this.sameCounter = 0;
+        this.lastShiftTime = currentTime;
+      } else if (inputs.speed < 22 && this.currentGear > 2) {
+        this.currentGear = 2;
+        this.sameCounter = 0;
+        this.lastShiftTime = currentTime;
+      } else if (inputs.speed < 35 && this.currentGear > 3) {
+        this.currentGear = 3;
+        this.sameCounter = 0;
+        this.lastShiftTime = currentTime;
+      } else if (inputs.speed < 48 && this.currentGear > 4) {
+        this.currentGear = 4;
+        this.sameCounter = 0;
+        this.lastShiftTime = currentTime;
+      }
+    }
+
     const inference = fuzzyInference(inputs, this.mode, this.currentGear);
     let recommended = defuzzify(inference.memberships, this.currentGear);
-
-    const gearSpeeds = [
-      { min: 0, max: 60 },
-      { min: 10, max: 100 },
-      { min: 30, max: 140 },
-      { min: 50, max: 170 },
-      { min: 70, max: 190 },
-      { min: 90, max: 210 },
-      { min: 110, max: 240 }
-    ];
 
     if (this.mode === 'S') {
       recommended = Math.min(recommended, 6);
     }
 
+    if (Math.abs(recommended - this.currentGear) > 1) {
+      if (recommended > this.currentGear) {
+        recommended = this.currentGear + 1;
+      } else {
+        recommended = this.currentGear - 1;
+      }
+    }
+
+    const timeSinceLastShift = currentTime - this.lastShiftTime;
+    const minShiftInterval = 0.8;
+
+    if (timeSinceLastShift < minShiftInterval && recommended !== this.currentGear) {
+      recommended = this.currentGear;
+    }
+
     if (inputs.brake > 80) {
-      if (inputs.speed < 20) recommended = Math.min(recommended, 1);
+      if (inputs.speed < 5) recommended = 0;
+      else if (inputs.speed < 20) recommended = Math.min(recommended, 1);
       else if (inputs.speed < 40) recommended = Math.min(recommended, 2);
       else if (inputs.speed < 70) recommended = Math.min(recommended, 3);
       else if (inputs.speed < 100) recommended = Math.min(recommended, 4);
@@ -103,6 +130,10 @@ export class FuzzyGearbox {
       recommended = this.currentGear;
     }
 
+    if (inputs.speed < 1 && inputs.throttle < 5) {
+      recommended = 0;
+    }
+
     if (recommended === this.lastRecommended) {
       this.sameCounter++;
     } else {
@@ -110,12 +141,14 @@ export class FuzzyGearbox {
       this.sameCounter = 0;
     }
 
-    // Для downshift нужно меньше подтверждений (быстрее реакция)
-    const threshold = recommended < this.currentGear ? 3 : 5;
+    const thresholdDown = 10;
+    const thresholdUp = 15;
+    const threshold = recommended < this.currentGear ? thresholdDown : thresholdUp;
 
     if (recommended !== this.currentGear && this.sameCounter >= threshold) {
       this.currentGear = recommended;
       this.sameCounter = 0;
+      this.lastShiftTime = currentTime;
     }
 
     return {
