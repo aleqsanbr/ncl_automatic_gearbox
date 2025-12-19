@@ -86,12 +86,7 @@ export class CarSimulator {
 
     if (previousGear !== gear && !this.isShifting) {
       this.isShifting = true;
-      this.shiftTimer = 0.3;
-
-      if (gear > 0) {
-        const targetRPMForNewGear = this.calculateRPMFromSpeed(this.speed, gear);
-        this.rpm += (targetRPMForNewGear - this.rpm) * 0.5;
-      }
+      this.shiftTimer = 0.05;
     }
 
     if (this.isShifting) {
@@ -102,7 +97,7 @@ export class CarSimulator {
 
       if (gear > 0) {
         const targetRPMForGear = this.calculateRPMFromSpeed(this.speed, gear);
-        this.rpm += (targetRPMForGear - this.rpm) * dt * 8;
+        this.rpm += (targetRPMForGear - this.rpm) * dt * 0.8;
       }
     }
 
@@ -113,7 +108,8 @@ export class CarSimulator {
       this.speed = Math.max(0, this.speed);
 
       if (gear > 0) {
-        this.rpm = this.calculateRPMFromSpeed(this.speed, gear);
+        const targetRPM = this.calculateRPMFromSpeed(this.speed, gear);
+        this.rpm += (targetRPM - this.rpm) * dt * 4;
       } else {
         const targetIdleRPM = this.getIdleRPM();
         this.rpm += (targetIdleRPM - this.rpm) * dt * 5;
@@ -122,20 +118,20 @@ export class CarSimulator {
       const targetRPM = this.getTargetRPMFromThrottle(this.throttle);
       this.rpm += (targetRPM - this.rpm) * dt * 5;
 
-      const rollingResistance = 15;
-      const airResistance = 0.15 * this.speed * this.speed;
+      const rollingResistance = 60;
+      const airResistance = 0.4 * this.speed * this.speed;
       const deceleration = (rollingResistance + airResistance) / 1200;
       this.speed -= deceleration * dt * 3.6;
       this.speed = Math.max(0, this.speed);
     } else {
       const targetRPM = this.getTargetRPMFromThrottle(this.throttle);
 
-      const rpmChangeRate = this.throttle > 0 ? 800 : 1500;
+      const rpmChangeRate = this.throttle > 0 ? 600 : 1500;
       this.rpm += (targetRPM - this.rpm) * dt * (rpmChangeRate / 1000);
 
       const theoreticalSpeed = this.calculateSpeedFromRPM(this.rpm, gear);
 
-      const mass = 1200;
+      const mass = 2000;
       const rollingResistance = 30;
       const airResistance = 0.25 * this.speed * this.speed;
 
@@ -148,8 +144,11 @@ export class CarSimulator {
 
       if (theoreticalSpeed > this.speed + 0.5) {
         const rpmAboveIdle = Math.max(0, this.rpm - this.getIdleRPM());
-        const engineForce = rpmAboveIdle * gearRatio * 5.5;
-        const netForce = engineForce - rollingResistance - airResistance - engineBraking;
+        const engineForce = rpmAboveIdle * gearRatio * 4.2;
+
+        const shiftPenalty = 1.0;
+
+        const netForce = engineForce * shiftPenalty - rollingResistance - airResistance - engineBraking;
         acceleration = netForce / mass;
       } else {
         const deceleration = (rollingResistance + airResistance + engineBraking) / mass;

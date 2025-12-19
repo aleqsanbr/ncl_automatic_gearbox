@@ -17,20 +17,20 @@ export const createFuzzySets = (mode) => {
     return {
       speed: {
         gear0: (x) => trapezoid(x, 0, 0, 2, 5),
-        gear1: (x) => trapezoid(x, 0, 0, 5, 12),
-        gear2: (x) => triangle(x, 8, 14, 23),
-        gear3: (x) => triangle(x, 18, 26, 36),
-        gear4: (x) => triangle(x, 32, 39, 50),
-        gear5: (x) => triangle(x, 45, 52, 62),
-        gear6: (x) => triangle(x, 58, 64, 73),
-        gear7: (x) => trapezoid(x, 68, 75, 220, 220)
+        gear1: (x) => trapezoid(x, 0, 0, 7, 14),
+        gear2: (x) => triangle(x, 10, 16, 25),
+        gear3: (x) => triangle(x, 20, 28, 38),
+        gear4: (x) => triangle(x, 32, 40, 52),
+        gear5: (x) => triangle(x, 45, 54, 64),
+        gear6: (x) => triangle(x, 58, 66, 76),
+        gear7: (x) => trapezoid(x, 70, 78, 220, 220)
       },
       rpm: {
-        idle: (x) => trapezoid(x, 800, 900, 1200, 1400),
-        low: (x) => triangle(x, 1300, 1500, 1700),
-        medium: (x) => triangle(x, 1600, 1750, 1900),
-        high: (x) => triangle(x, 1800, 2000, 2500),
-        veryHigh: (x) => trapezoid(x, 2300, 3000, 6000, 6000)
+        idle: (x) => trapezoid(x, 800, 900, 1100, 1250),
+        low: (x) => triangle(x, 1200, 1350, 1500),
+        medium: (x) => triangle(x, 1450, 1600, 1750),
+        high: (x) => triangle(x, 1700, 1800, 2000),
+        veryHigh: (x) => trapezoid(x, 1950, 2200, 6000, 6000)
       },
       brake: {
         none: (x) => trapezoid(x, 0, 0, 5, 15),
@@ -58,10 +58,10 @@ export const createFuzzySets = (mode) => {
       },
       rpm: {
         idle: (x) => trapezoid(x, 800, 2000, 2700, 3200),
-        low: (x) => triangle(x, 3000, 3500, 3900),
-        medium: (x) => triangle(x, 3700, 4100, 4400),
-        high: (x) => triangle(x, 4200, 4600, 5100),
-        veryHigh: (x) => trapezoid(x, 4900, 5500, 6500, 6500)
+        low: (x) => triangle(x, 2500, 3200, 3800),
+        medium: (x) => triangle(x, 3500, 3900, 4200),
+        high: (x) => triangle(x, 4000, 4200, 4500),
+        veryHigh: (x) => trapezoid(x, 4300, 5000, 6500, 6500)
       },
       brake: {
         none: (x) => trapezoid(x, 0, 0, 5, 15),

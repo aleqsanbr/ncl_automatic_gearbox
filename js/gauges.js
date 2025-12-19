@@ -11,7 +11,7 @@ export class Gauge {
 
   draw(value) {
     this.targetValue = value;
-    this.currentValue += (this.targetValue - this.currentValue) * 0.15;
+    this.currentValue += (this.targetValue - this.currentValue) * 0.2;
 
     const ctx = this.ctx;
     const centerX = this.canvas.width / 2;
