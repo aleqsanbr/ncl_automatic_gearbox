@@ -4,7 +4,6 @@ import { getRules } from './rules.js';
 export const fuzzyInference = (inputs, mode, currentGear) => {
   const fuzzyInputs = fuzzify(inputs, mode);
   const rules = getRules(mode);
-
   const memberships = {};
   const activatedRules = [];
 
@@ -29,8 +28,8 @@ export const fuzzyInference = (inputs, mode, currentGear) => {
       if (!memberships[targetGear]) {
         memberships[targetGear] = 0;
       }
-      memberships[targetGear] = Math.max(memberships[targetGear], strength);
 
+      memberships[targetGear] = Math.max(memberships[targetGear], strength);
       activatedRules.push({
         gear: targetGear,
         strength,
@@ -72,29 +71,33 @@ export class FuzzyGearbox {
     this.lastRecommended = 0;
     this.sameCounter = 0;
     this.lastShiftTime = 0;
+    this.engineStarted = false; // Флаг для отслеживания, включена ли машина
   }
 
   getRecommendedGear(inputs, currentTime = 0) {
-    if (inputs.throttle < 5 && this.currentGear > 1) {
-      if (inputs.speed < 10 && this.currentGear > 1) {
-        this.currentGear = 1;
+    // ЖЕСТКОЕ ПРАВИЛО: если машина стоит, ВСЕГДА нейтраль
+    // Это не fuzzy, но необходимо для правильного поведения при старте
+    if (inputs.speed < 0.5 && inputs.throttle < 5) {
+      // Машина стоит и нет газа
+      if (this.currentGear !== 0) {
         this.sameCounter = 0;
-        this.lastShiftTime = currentTime;
-      } else if (inputs.speed < 22 && this.currentGear > 2) {
-        this.currentGear = 2;
-        this.sameCounter = 0;
-        this.lastShiftTime = currentTime;
-      } else if (inputs.speed < 35 && this.currentGear > 3) {
-        this.currentGear = 3;
-        this.sameCounter = 0;
-        this.lastShiftTime = currentTime;
-      } else if (inputs.speed < 48 && this.currentGear > 4) {
-        this.currentGear = 4;
-        this.sameCounter = 0;
-        this.lastShiftTime = currentTime;
+        this.lastRecommended = 0;
       }
+      this.currentGear = 0;
+      this.engineStarted = false;
+      return { currentGear: 0, recommended: 0, inference: null };
     }
 
+    // Если включили газ на нейтрали, переходим на 1-ю
+    if (this.currentGear === 0 && inputs.throttle > 10) {
+      this.engineStarted = true;
+      this.sameCounter = 20; // Сразу даём разрешение
+      this.lastRecommended = 1;
+      this.currentGear = 1;
+      return { currentGear: 1, recommended: 1, inference: null };
+    }
+
+    // Нормальная fuzzy логика если уже едим
     const inference = fuzzyInference(inputs, this.mode, this.currentGear);
     let recommended = defuzzify(inference.memberships, this.currentGear);
 
@@ -102,36 +105,14 @@ export class FuzzyGearbox {
       recommended = Math.min(recommended, 6);
     }
 
-    if (Math.abs(recommended - this.currentGear) > 1) {
-      if (recommended > this.currentGear) {
-        recommended = this.currentGear + 1;
-      } else {
-        recommended = this.currentGear - 1;
-      }
-    }
-
-    const timeSinceLastShift = currentTime - this.lastShiftTime;
-    const minShiftInterval = 0.8;
-
-    if (timeSinceLastShift < minShiftInterval && recommended !== this.currentGear && this.currentGear !== 0) {
-      recommended = this.currentGear;
-    }
-
-    if (inputs.brake > 80) {
-      if (inputs.speed < 5) recommended = 0;
-      else if (inputs.speed < 20) recommended = Math.min(recommended, 1);
-      else if (inputs.speed < 40) recommended = Math.min(recommended, 2);
-      else if (inputs.speed < 70) recommended = Math.min(recommended, 3);
-      else if (inputs.speed < 100) recommended = Math.min(recommended, 4);
-      else if (inputs.speed < 140) recommended = Math.min(recommended, 5);
-    }
-
-    if (inputs.brake > 0 && recommended > this.currentGear) {
-      recommended = this.currentGear;
-    }
-
-    if (inputs.speed < 1 && inputs.throttle < 5) {
-      recommended = 0;
+    // ГИСТЕРЕЗИС
+    let threshold = 20;
+    if (inputs.brake > 40) {
+      threshold = 8;
+    } else if (recommended < this.currentGear) {
+      threshold = 12;
+    } else {
+      threshold = 18;
     }
 
     if (recommended === this.lastRecommended) {
@@ -141,27 +122,18 @@ export class FuzzyGearbox {
       this.sameCounter = 0;
     }
 
-    const thresholdDown = 10;
-    const thresholdUp = 15;
-    const threshold = recommended < this.currentGear ? thresholdDown : thresholdUp;
-
     if (recommended !== this.currentGear && this.sameCounter >= threshold) {
       this.currentGear = recommended;
       this.sameCounter = 0;
       this.lastShiftTime = currentTime;
     }
 
-    return {
-      currentGear: this.currentGear,
-      recommended,
-      inference
-    };
+    return { currentGear: this.currentGear, recommended, inference };
   }
 
   setMode(mode) {
     this.mode = mode;
     this.sameCounter = 0;
-
     if (mode === 'S' && this.currentGear > 6) {
       this.currentGear = 6;
     }
