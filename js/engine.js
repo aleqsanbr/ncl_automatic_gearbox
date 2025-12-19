@@ -113,7 +113,7 @@ export class FuzzyGearbox {
     const timeSinceLastShift = currentTime - this.lastShiftTime;
     const minShiftInterval = 0.8;
 
-    if (timeSinceLastShift < minShiftInterval && recommended !== this.currentGear) {
+    if (timeSinceLastShift < minShiftInterval && recommended !== this.currentGear && this.currentGear !== 0) {
       recommended = this.currentGear;
     }
 

@@ -18,7 +18,7 @@ export class CarSimulator {
   }
 
   getIdleRPM() {
-    return this.fuzzy.mode === 'D' ? 900 : 2000;
+    return this.fuzzy.mode === 'D' ? 900 : 1000;
   }
 
   getTargetRPMFromThrottle(throttle) {
@@ -126,12 +126,12 @@ export class CarSimulator {
     } else {
       const targetRPM = this.getTargetRPMFromThrottle(this.throttle);
 
-      const rpmChangeRate = this.throttle > 0 ? 600 : 1500;
+      const rpmChangeRate = this.throttle > 0 ? 600 : 120;
       this.rpm += (targetRPM - this.rpm) * dt * (rpmChangeRate / 1000);
 
       const theoreticalSpeed = this.calculateSpeedFromRPM(this.rpm, gear);
 
-      const mass = 2000;
+      const mass = 1800;
       const rollingResistance = 30;
       const airResistance = 0.25 * this.speed * this.speed;
 
@@ -142,13 +142,12 @@ export class CarSimulator {
 
       let acceleration = 0;
 
-      if (theoreticalSpeed > this.speed + 0.5) {
+      if (gear > 0 && theoreticalSpeed > this.speed + 0.5) {
         const rpmAboveIdle = Math.max(0, this.rpm - this.getIdleRPM());
-        const engineForce = rpmAboveIdle * gearRatio * 4.2;
+        const throttleFactor = this.throttle / 100;
+        const engineForce = rpmAboveIdle * gearRatio * 3.0 * throttleFactor;
 
-        const shiftPenalty = 1.0;
-
-        const netForce = engineForce * shiftPenalty - rollingResistance - airResistance - engineBraking;
+        const netForce = engineForce - rollingResistance - airResistance - engineBraking;
         acceleration = netForce / mass;
       } else {
         const deceleration = (rollingResistance + airResistance + engineBraking) / mass;

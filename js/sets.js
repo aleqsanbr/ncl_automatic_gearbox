@@ -57,7 +57,7 @@ export const createFuzzySets = (mode) => {
         gear6: (x) => trapezoid(x, 100, 110, 220, 220)
       },
       rpm: {
-        idle: (x) => trapezoid(x, 800, 2000, 2700, 3200),
+        idle: (x) => trapezoid(x, 800, 1000, 2200, 2700),
         low: (x) => triangle(x, 2500, 3200, 3800),
         medium: (x) => triangle(x, 3500, 3900, 4200),
         high: (x) => triangle(x, 4000, 4200, 4500),
