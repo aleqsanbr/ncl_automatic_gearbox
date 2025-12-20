@@ -28,9 +28,9 @@ export const createFuzzySets = (mode) => {
         // 45-58 км/ч - 5-я передача
         gear5: (x) => trapezoid(x, 50, 52, 65, 75),
         // 58-70 км/ч - 6-я передача
-        gear6: (x) => trapezoid(x, 65, 68, 80, 90),
+        gear6: (x) => trapezoid(x, 58, 63, 70, 74),
         // 70+ км/ч - 7-я передача
-        gear7: (x) => trapezoid(x, 80, 85, 220, 220),
+        gear7: (x) => trapezoid(x, 70, 74, 220, 220),
         // Очень низкая скорость (0-1 км/ч)
         veryLow: (x) => trapezoid(x, 0, 0, 1, 3)
       },

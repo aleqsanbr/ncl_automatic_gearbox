@@ -23,7 +23,7 @@ export class CarSimulator {
 
   getTargetRPMFromThrottle(throttle) {
     const idleRPM = this.getIdleRPM();
-    const maxRPM = this.fuzzy.mode === 'D' ? 4000 : 6500;
+    const maxRPM = this.fuzzy.mode === 'D' ? 4500 : 6500;
 
     if (throttle < 5) {
       return idleRPM;
@@ -65,14 +65,6 @@ export class CarSimulator {
     const dt = deltaTime / 1000;
     this.totalTime += dt;
 
-    if (this.throttle > 0 && this.brake > 0) {
-      if (this.throttle > this.brake) {
-        this.brake = 0;
-      } else {
-        this.throttle = 0;
-      }
-    }
-
     const inputs = {
       speed: this.speed,
       rpm: this.rpm,
@@ -94,11 +86,6 @@ export class CarSimulator {
       if (this.shiftTimer <= 0) {
         this.isShifting = false;
       }
-
-      if (gear > 0) {
-        const targetRPMForGear = this.calculateRPMFromSpeed(this.speed, gear);
-        this.rpm += (targetRPMForGear - this.rpm) * dt * 0.8;
-      }
     }
 
     if (this.brake > 0) {
@@ -109,14 +96,29 @@ export class CarSimulator {
 
       if (gear > 0) {
         const targetRPM = this.calculateRPMFromSpeed(this.speed, gear);
-        this.rpm += (targetRPM - this.rpm) * dt * 4;
+        // На низких передачах (1-2) сильно уменьшаем скорость изменения RPM для плавности
+        // На высоких передачах можно быстрее
+        const baseDelta = gear <= 2 ? 400 : gear <= 4 ? 800 : 1200;
+        const maxDeltaRPMPerSec = baseDelta;
+        const maxDelta = maxDeltaRPMPerSec * dt;
+        const delta = targetRPM - this.rpm;
+        const limitedDelta = Math.max(-maxDelta, Math.min(maxDelta, delta));
+        this.rpm += limitedDelta;
       } else {
         const targetIdleRPM = this.getIdleRPM();
-        this.rpm += (targetIdleRPM - this.rpm) * dt * 5;
+        const maxDeltaRPMPerSec = 800;
+        const maxDelta = maxDeltaRPMPerSec * dt;
+        const delta = targetIdleRPM - this.rpm;
+        const limitedDelta = Math.max(-maxDelta, Math.min(maxDelta, delta));
+        this.rpm += limitedDelta;
       }
     } else if (gear === 0) {
       const targetRPM = this.getTargetRPMFromThrottle(this.throttle);
-      this.rpm += (targetRPM - this.rpm) * dt * 5;
+      const maxDeltaRPMPerSec = 800;
+      const maxDelta = maxDeltaRPMPerSec * dt;
+      const delta = targetRPM - this.rpm;
+      const appliedDelta = Math.max(-maxDelta, Math.min(maxDelta, delta));
+      this.rpm += appliedDelta;
 
       const rollingResistance = 60;
       const airResistance = 0.4 * this.speed * this.speed;
@@ -124,19 +126,37 @@ export class CarSimulator {
       this.speed -= deceleration * dt * 3.6;
       this.speed = Math.max(0, this.speed);
     } else {
-      const targetRPM = this.getTargetRPMFromThrottle(this.throttle);
+      // RPM определяется скоростью и передачей через механическую связь
+      const baseRPM = this.calculateRPMFromSpeed(this.speed, gear);
 
-      const rpmChangeRate = this.throttle > 0 ? 600 : 120;
-      this.rpm += (targetRPM - this.rpm) * dt * (rpmChangeRate / 1000);
+      if (this.throttle > 5) {
+        // При нажатом газе стремимся к более высоким оборотам
+        const maxRPM = this.fuzzy.mode === 'D' ? 4500 : 6500;
+        const throttleRPM = this.getIdleRPM() + (maxRPM - this.getIdleRPM()) * (this.throttle / 100);
+        const targetRPM = Math.max(baseRPM, throttleRPM);
+
+        const maxDeltaRPMPerSec = 1500;
+        const maxDelta = maxDeltaRPMPerSec * dt;
+        const delta = targetRPM - this.rpm;
+        const appliedDelta = Math.max(-maxDelta, Math.min(maxDelta, delta));
+        this.rpm += appliedDelta;
+      } else {
+        // Без газа RPM плавно следует за baseRPM (но быстрее чем с газом)
+        const maxDeltaRPMPerSec = 2500;
+        const maxDelta = maxDeltaRPMPerSec * dt;
+        const delta = baseRPM - this.rpm;
+        const appliedDelta = Math.max(-maxDelta, Math.min(maxDelta, delta));
+        this.rpm += appliedDelta;
+      }
 
       const theoreticalSpeed = this.calculateSpeedFromRPM(this.rpm, gear);
 
       const mass = 1800;
       const rollingResistance = 30;
-      const airResistance = 0.25 * this.speed * this.speed;
+      const airResistance = 0.22 * this.speed * this.speed;
 
       const gearRatio = this.getGearRatios()[gear];
-      const engineBrakingBase = this.throttle === 0 ? gearRatio * 400 : 0;
+      const engineBrakingBase = this.throttle === 0 ? gearRatio * 1200 : 0;
       const speedFactor = Math.min(1, this.speed / 30);
       const engineBraking = engineBrakingBase * speedFactor;
 
@@ -145,7 +165,7 @@ export class CarSimulator {
       if (gear > 0 && theoreticalSpeed > this.speed + 0.5) {
         const rpmAboveIdle = Math.max(0, this.rpm - this.getIdleRPM());
         const throttleFactor = this.throttle / 100;
-        const engineForce = rpmAboveIdle * gearRatio * 3.0 * throttleFactor;
+        const engineForce = rpmAboveIdle * gearRatio * 3.5 * throttleFactor;
 
         const netForce = engineForce - rollingResistance - airResistance - engineBraking;
         acceleration = netForce / mass;
@@ -156,10 +176,6 @@ export class CarSimulator {
 
       this.speed += acceleration * dt * 3.6;
       this.speed = Math.max(0, Math.min(240, this.speed));
-
-      if (this.speed < 0.5 && this.throttle < 5) {
-        this.speed = 0;
-      }
     }
 
     this.rpm = Math.max(800, Math.min(6500, this.rpm));
