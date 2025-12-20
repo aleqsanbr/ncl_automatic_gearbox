@@ -8,13 +8,11 @@ export const getRules = (mode) => {
       { conditions: ['speed.gear1', 'throttle.none'], gear: 1, priority: 90 },
 
       // ===== ПЕРЕХОД НА 2-Ю (5-20 км/ч, ~1800 RPM) =====
-      // Переходим на 2-ю ТОЛЬКО при высоких оборотах (1800+)
       { conditions: ['speed.gear1', 'rpm.high', 'throttle.light'], gear: 2, priority: 88 },
       { conditions: ['speed.gear1', 'rpm.high', 'throttle.medium'], gear: 2, priority: 87 },
       { conditions: ['speed.gear1', 'rpm.high', 'throttle.high'], gear: 2, priority: 86 },
 
       // ===== 2-Я ПЕРЕДАЧА (5-20 км/ч) =====
-      // КРЕПКО ДЕРЖИМ 2-Ю - не даём сразу прыгнуть на 4-ю
       { conditions: ['speed.gear2', 'rpm.idle'], gear: 2, priority: 94 },
       { conditions: ['speed.gear2', 'rpm.low', 'throttle.light'], gear: 2, priority: 92 },
       { conditions: ['speed.gear2', 'rpm.low', 'throttle.medium'], gear: 2, priority: 90 },
@@ -22,7 +20,6 @@ export const getRules = (mode) => {
       { conditions: ['speed.gear2', 'throttle.none'], gear: 2, priority: 87 },
 
       // ===== ПЕРЕХОД НА 3-Ю (20 км/ч, ~1800 RPM) =====
-      // Только при явно достаточной скорости И оборотах
       { conditions: ['speed.gear2', 'rpm.medium', 'throttle.medium'], gear: 3, priority: 85 },
       { conditions: ['speed.gear2', 'rpm.high', 'throttle.medium'], gear: 3, priority: 84 },
       { conditions: ['speed.gear2', 'rpm.high', 'throttle.high'], gear: 3, priority: 83 },
@@ -71,7 +68,6 @@ export const getRules = (mode) => {
       { conditions: ['speed.gear6', 'throttle.none'], gear: 6, priority: 79 },
 
       // ===== 7-Я ПЕРЕДАЧА (70+ км/ч) =====
-      // Переключение только при низких/средних оборотах (крейсерский режим)
       { conditions: ['speed.gear7', 'rpm.idle'], gear: 7, priority: 92 },
       { conditions: ['speed.gear7', 'rpm.low'], gear: 7, priority: 90 },
       { conditions: ['speed.gear7', 'rpm.medium'], gear: 7, priority: 88 },
@@ -88,8 +84,7 @@ export const getRules = (mode) => {
       { conditions: ['speed.gear6', 'rpm.high', 'throttle.medium'], gear: 7, priority: 82 },
       { conditions: ['speed.gear6', 'rpm.high', 'throttle.high'], gear: 7, priority: 76 },
 
-      // ===== ТОРМОЖЕНИЕ - НЕ КОНФЛИКТУЕТ С ОСНОВНОЙ ЛОГИКОЙ =====
-      // При лёгком торможении просто держим текущую
+      // ===== ТОРМОЖЕНИЕ =====
       { conditions: ['brake.light'], gear: -1, priority: 70 }, // -1 = держать текущую
 
       // При среднем торможении мягко downshift
@@ -115,7 +110,6 @@ export const getRules = (mode) => {
       { conditions: ['speed.gear1', 'throttle.none'], gear: 1, priority: 88 },
 
       // ===== ПЕРЕХОД НА 2-Ю (25 км/ч, 4000 RPM) =====
-      // В спорте требуем ВЫСОКИХ оборотов (4000+)
       { conditions: ['speed.gear1', 'rpm.high', 'throttle.medium'], gear: 2, priority: 87 },
       { conditions: ['speed.gear1', 'rpm.high', 'throttle.high'], gear: 2, priority: 86 },
       { conditions: ['speed.gear1', 'rpm.veryHigh', 'throttle.high'], gear: 2, priority: 88 },
@@ -167,7 +161,7 @@ export const getRules = (mode) => {
       { conditions: ['speed.gear6', 'rpm.high'], gear: 6, priority: 77 },
       { conditions: ['speed.gear6', 'throttle.none'], gear: 6, priority: 76 },
 
-      // ===== ТОРМОЖЕНИЕ В СПОРТЕ =====
+      // ===== ТОРМОЖЕНИЕ =====
       { conditions: ['brake.light'], gear: -1, priority: 70 },
 
       { conditions: ['brake.medium', 'speed.gear6'], gear: 5, priority: 80 },

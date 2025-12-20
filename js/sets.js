@@ -14,28 +14,18 @@ const trapezoid = (x, left, leftTop, rightTop, right) => {
 
 export const createFuzzySets = (mode) => {
   if (mode === 'D') {
-    // DRIVE MODE - по reference
     return {
       speed: {
-        // 0-7 км/ч - 1-я передача
         gear1: (x) => trapezoid(x, 0, 0, 8, 15),
-        // 5-20 км/ч - 2-я передача
         gear2: (x) => trapezoid(x, 5, 10, 25, 35),
-        // 20-32 км/ч - 3-я передача
         gear3: (x) => trapezoid(x, 25, 28, 38, 45),
-        // 32-45 км/ч - 4-я передача
         gear4: (x) => trapezoid(x, 38, 40, 50, 58),
-        // 45-58 км/ч - 5-я передача
         gear5: (x) => trapezoid(x, 50, 52, 65, 75),
-        // 58-70 км/ч - 6-я передача
         gear6: (x) => trapezoid(x, 58, 63, 70, 74),
-        // 70+ км/ч - 7-я передача
         gear7: (x) => trapezoid(x, 70, 74, 220, 220),
-        // Очень низкая скорость (0-1 км/ч)
         veryLow: (x) => trapezoid(x, 0, 0, 1, 3)
       },
       rpm: {
-        // По reference: D режим использует 1300-1800 RPM для переключений
         idle: (x) => trapezoid(x, 800, 900, 1100, 1200),
         low: (x) => trapezoid(x, 1000, 1200, 1400, 1600),
         medium: (x) => trapezoid(x, 1400, 1500, 1700, 1900),
@@ -65,25 +55,17 @@ export const createFuzzySets = (mode) => {
       }
     };
   } else {
-    // SPORT MODE - по reference
     return {
       speed: {
-        // 0-25 км/ч - 1-я передача
         gear1: (x) => trapezoid(x, 0, 0, 20, 32),
-        // 25-45 км/ч - 2-я передача
         gear2: (x) => trapezoid(x, 20, 28, 50, 60),
-        // 45-65 км/ч - 3-я передача
         gear3: (x) => trapezoid(x, 50, 55, 70, 80),
-        // 65-85 км/ч - 4-я передача
         gear4: (x) => trapezoid(x, 70, 75, 90, 100),
-        // 85-105 км/ч - 5-я передача
         gear5: (x) => trapezoid(x, 90, 95, 120, 135),
-        // 105+ км/ч - 6-я передача
         gear6: (x) => trapezoid(x, 120, 130, 220, 220),
         veryLow: (x) => trapezoid(x, 0, 0, 3, 8)
       },
       rpm: {
-        // По reference: S режим использует 2500-4200 RPM для переключений
         idle: (x) => trapezoid(x, 800, 1500, 2200, 2800),
         low: (x) => trapezoid(x, 2300, 2800, 3500, 4000),
         medium: (x) => trapezoid(x, 3400, 3800, 4200, 4500),
