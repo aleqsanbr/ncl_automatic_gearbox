@@ -4,7 +4,8 @@ import { getRules } from './rules.js';
 export const fuzzyInference = (inputs, mode, currentGear) => {
   const fuzzyInputs = fuzzify(inputs, mode);
   const rules = getRules(mode);
-  const memberships = {}; // степени принадлежности к каждой передаче
+
+  const memberships = {};
   const activatedRules = [];
 
   for (const rule of rules) {
@@ -16,46 +17,31 @@ export const fuzzyInference = (inputs, mode, currentGear) => {
       strength = Math.min(strength, value);
     }
 
-    if (strength <= 0.01) continue;
+    if (strength > 0.01) {
+      let targetGear = rule.gear;
 
-    const priorityFactor = Math.max(0, Math.min(1, (rule.priority || 50) / 100)); // нормализация к [0,1]
-    const weightedStrength = strength * priorityFactor;
+      if (targetGear === 'upshift') {
+        targetGear = mode === 'S' ? Math.min(6, currentGear + 1) : Math.min(7, currentGear + 1);
+      } else if (targetGear === 'downshift') {
+        targetGear = Math.max(0, currentGear - 1);
+      }
 
-    let targetGear = rule.gear;
+      if (!memberships[targetGear]) {
+        memberships[targetGear] = 0;
+      }
+      memberships[targetGear] = Math.max(memberships[targetGear], strength);
 
-    // Специальные маркеры
-    if (targetGear === 'upshift') {
-      targetGear = Math.min(7, currentGear + 1);
-    } else if (targetGear === 'downshift') {
-      targetGear = Math.max(0, currentGear - 1);
-    } else if (targetGear === -1) {
-      targetGear = currentGear; // -1 означает "держать текущую"
+      activatedRules.push({
+        gear: targetGear,
+        strength,
+        priority: rule.priority,
+        conditions: rule.conditions
+      });
     }
-
-    // Нормализуем к числу (в правилах иногда числа, иногда спец. метки)
-    targetGear = parseInt(targetGear, 10);
-
-    if (Number.isNaN(targetGear)) continue;
-
-    if (!memberships[targetGear]) {
-      memberships[targetGear] = 0;
-    }
-
-    // Берём максимум от уже существующего и нового взвешенного значения
-    memberships[targetGear] = Math.max(memberships[targetGear], weightedStrength);
-
-    activatedRules.push({
-      gear: targetGear,
-      strength: weightedStrength,
-      priority: rule.priority,
-      conditions: rule.conditions
-    });
   }
 
   return { memberships, activatedRules, fuzzyInputs };
 };
-
-// memberships - {5: 0.33, 6: 0.56, 7: 0.23}
 
 export const defuzzify = (memberships, currentGear) => {
   // Если нет кандидатов — остаёмся на текущей передаче
@@ -94,54 +80,39 @@ export class FuzzyGearbox {
     this.mode = 'D';
     this.lastRecommended = 0;
     this.sameCounter = 0;
-    this.lastShiftTime = -1000; // секунды симуляции
-    this.minShiftInterval = 0.5; // минимальный интервал между переключениями (в секундах)
+    this.lastShiftTime = 0;
   }
 
   getRecommendedGear(inputs, currentTime = 0) {
-    if (inputs.speed < 0.5 && inputs.throttle < 5) {
-      if (this.currentGear !== 0) {
-        this.sameCounter = 0;
-        this.lastRecommended = 0;
-      }
-      this.currentGear = 0;
-      return { currentGear: 0, recommended: 0, inference: null };
-    }
-
-    if (this.currentGear === 0 && inputs.throttle > 10) {
-      this.sameCounter = 20;
-      this.lastRecommended = 1;
-      this.currentGear = 1;
-      this.lastShiftTime = currentTime;
-      return { currentGear: 1, recommended: 1, inference: null };
-    }
-
     const inference = fuzzyInference(inputs, this.mode, this.currentGear);
     let recommended = defuzzify(inference.memberships, this.currentGear);
 
-    // Во время торможения или наката запрещаем upshift
-    if (inputs.throttle < 5 && recommended > this.currentGear) {
+    if (this.mode === 'S') {
+      recommended = Math.min(recommended, 6);
+    }
+
+    if (Math.abs(recommended - this.currentGear) > 1) {
+      if (recommended > this.currentGear) {
+        recommended = this.currentGear + 1;
+      } else {
+        recommended = this.currentGear - 1;
+      }
+    }
+
+    const timeSinceLastShift = currentTime - this.lastShiftTime;
+    const minShiftInterval = 0.8;
+
+    if (timeSinceLastShift < minShiftInterval && recommended !== this.currentGear) {
       recommended = this.currentGear;
     }
 
-    // Во время торможения запрещаем подъём на следующую передачу
-    if (inputs.brake > 20 && recommended > this.currentGear) {
+    if (inputs.brake > 0 && recommended > this.currentGear) {
       recommended = this.currentGear;
     }
 
-    // ГИСТЕРЕЗИС
-    let threshold = 30;
-    if (inputs.brake > 60) {
-      threshold = 10;
-    } else if (recommended < this.currentGear) {
-      threshold = 18;
-    } else {
-      threshold = 30;
+    if (inputs.speed < 1 && inputs.throttle < 5) {
+      recommended = 0;
     }
-
-    // Минимальное время между переключениями
-    const timeSinceLastShift = currentTime - (this.lastShiftTime || 0);
-    const canShiftByTime = timeSinceLastShift >= this.minShiftInterval;
 
     if (recommended === this.lastRecommended) {
       this.sameCounter++;
@@ -150,19 +121,27 @@ export class FuzzyGearbox {
       this.sameCounter = 0;
     }
 
-    // Решение о переключении: требуется и достаточное количество "кадров" и таймаут прошёл
-    if (recommended !== this.currentGear && this.sameCounter >= threshold && canShiftByTime) {
+    const thresholdDown = 10;
+    const thresholdUp = 15;
+    const threshold = recommended < this.currentGear ? thresholdDown : thresholdUp;
+
+    if (recommended !== this.currentGear && this.sameCounter >= threshold) {
       this.currentGear = recommended;
       this.sameCounter = 0;
       this.lastShiftTime = currentTime;
     }
 
-    return { currentGear: this.currentGear, recommended, inference };
+    return {
+      currentGear: this.currentGear,
+      recommended,
+      inference
+    };
   }
 
   setMode(mode) {
     this.mode = mode;
     this.sameCounter = 0;
+
     if (mode === 'S' && this.currentGear > 6) {
       this.currentGear = 6;
     }

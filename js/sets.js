@@ -16,82 +16,64 @@ export const createFuzzySets = (mode) => {
   if (mode === 'D') {
     return {
       speed: {
-        gear1: (x) => trapezoid(x, 0, 0, 8, 15),
-        gear2: (x) => trapezoid(x, 5, 10, 25, 35),
-        gear3: (x) => trapezoid(x, 25, 28, 38, 45),
-        gear4: (x) => trapezoid(x, 38, 40, 50, 58),
-        gear5: (x) => trapezoid(x, 50, 52, 65, 75),
-        gear6: (x) => trapezoid(x, 58, 63, 70, 74),
-        gear7: (x) => trapezoid(x, 70, 74, 220, 220),
-        veryLow: (x) => trapezoid(x, 0, 0, 1, 3)
+        gear0: (x) => trapezoid(x, 0, 0, 2, 5),
+        gear1: (x) => trapezoid(x, 0, 0, 5, 12),
+        gear2: (x) => triangle(x, 8, 14, 23),
+        gear3: (x) => triangle(x, 18, 26, 36),
+        gear4: (x) => triangle(x, 32, 39, 50),
+        gear5: (x) => triangle(x, 45, 52, 62),
+        gear6: (x) => triangle(x, 58, 64, 73),
+        gear7: (x) => trapezoid(x, 68, 75, 220, 220)
       },
       rpm: {
-        idle: (x) => trapezoid(x, 800, 900, 1100, 1200),
-        low: (x) => trapezoid(x, 1000, 1200, 1400, 1600),
-        medium: (x) => trapezoid(x, 1400, 1500, 1700, 1900),
-        high: (x) => trapezoid(x, 1700, 1800, 2500, 6000),
-        veryHigh: (x) => trapezoid(x, 2400, 3000, 6000, 6000)
+        idle: (x) => trapezoid(x, 800, 900, 1200, 1400),
+        low: (x) => triangle(x, 1300, 1500, 1700),
+        medium: (x) => triangle(x, 1600, 1750, 1900),
+        high: (x) => triangle(x, 1800, 2000, 2500),
+        veryHigh: (x) => trapezoid(x, 2300, 3000, 6000, 6000)
       },
       brake: {
         none: (x) => trapezoid(x, 0, 0, 5, 15),
-        light: (x) => trapezoid(x, 10, 15, 30, 40),
-        medium: (x) => trapezoid(x, 35, 50, 70, 80),
-        heavy: (x) => trapezoid(x, 75, 85, 100, 100)
+        light: (x) => triangle(x, 10, 25, 40),
+        medium: (x) => triangle(x, 35, 55, 75),
+        heavy: (x) => trapezoid(x, 65, 80, 100, 100)
       },
       throttle: {
         none: (x) => trapezoid(x, 0, 0, 5, 15),
-        light: (x) => trapezoid(x, 10, 20, 40, 50),
-        medium: (x) => trapezoid(x, 40, 55, 75, 85),
-        high: (x) => trapezoid(x, 80, 90, 100, 100)
-      },
-      urgentDownshift: (brake, speed) => {
-        if (brake < 70) return 0;
-        return Math.min(1, (brake - 70) / 30);
-      },
-      gentleDownshift: (throttle, speed) => {
-        if (throttle > 10) return 0;
-        if (speed < 3) return 0;
-        return Math.min(1, (10 - throttle) / 10);
+        light: (x) => triangle(x, 10, 25, 45),
+        medium: (x) => triangle(x, 40, 60, 80),
+        high: (x) => trapezoid(x, 75, 85, 100, 100)
       }
     };
   } else {
     return {
       speed: {
-        gear1: (x) => trapezoid(x, 0, 0, 20, 32),
-        gear2: (x) => trapezoid(x, 20, 28, 50, 60),
-        gear3: (x) => trapezoid(x, 50, 55, 70, 80),
-        gear4: (x) => trapezoid(x, 70, 75, 90, 100),
-        gear5: (x) => trapezoid(x, 90, 95, 120, 135),
-        gear6: (x) => trapezoid(x, 120, 130, 220, 220),
-        veryLow: (x) => trapezoid(x, 0, 0, 3, 8)
+        gear0: (x) => trapezoid(x, 0, 0, 2, 5),
+        gear1: (x) => trapezoid(x, 0, 0, 15, 28),
+        gear2: (x) => triangle(x, 22, 35, 50),
+        gear3: (x) => triangle(x, 42, 55, 70),
+        gear4: (x) => triangle(x, 62, 75, 90),
+        gear5: (x) => triangle(x, 82, 95, 110),
+        gear6: (x) => trapezoid(x, 100, 110, 220, 220)
       },
       rpm: {
-        idle: (x) => trapezoid(x, 800, 1500, 2200, 2800),
-        low: (x) => trapezoid(x, 2300, 2800, 3500, 4000),
-        medium: (x) => trapezoid(x, 3400, 3800, 4200, 4500),
-        high: (x) => trapezoid(x, 4100, 4200, 5500, 6000),
-        veryHigh: (x) => trapezoid(x, 5300, 6000, 6500, 6500)
+        idle: (x) => trapezoid(x, 800, 2000, 2700, 3200),
+        low: (x) => triangle(x, 3000, 3500, 3900),
+        medium: (x) => triangle(x, 3700, 4100, 4400),
+        high: (x) => triangle(x, 4200, 4600, 5100),
+        veryHigh: (x) => trapezoid(x, 4900, 5500, 6500, 6500)
       },
       brake: {
         none: (x) => trapezoid(x, 0, 0, 5, 15),
-        light: (x) => trapezoid(x, 10, 15, 30, 40),
-        medium: (x) => trapezoid(x, 35, 50, 70, 80),
-        heavy: (x) => trapezoid(x, 75, 85, 100, 100)
+        light: (x) => triangle(x, 10, 25, 40),
+        medium: (x) => triangle(x, 35, 55, 75),
+        heavy: (x) => trapezoid(x, 65, 80, 100, 100)
       },
       throttle: {
         none: (x) => trapezoid(x, 0, 0, 5, 15),
-        light: (x) => trapezoid(x, 10, 20, 45, 55),
-        medium: (x) => trapezoid(x, 45, 60, 80, 90),
-        high: (x) => trapezoid(x, 80, 90, 100, 100)
-      },
-      urgentDownshift: (brake, speed) => {
-        if (brake < 70) return 0;
-        return Math.min(1, (brake - 70) / 30);
-      },
-      gentleDownshift: (throttle, speed) => {
-        if (throttle > 15) return 0;
-        if (speed < 5) return 0;
-        return Math.min(1, (15 - throttle) / 15);
+        light: (x) => triangle(x, 10, 25, 45),
+        medium: (x) => triangle(x, 40, 60, 80),
+        high: (x) => trapezoid(x, 75, 85, 100, 100)
       }
     };
   }
@@ -99,12 +81,12 @@ export const createFuzzySets = (mode) => {
 
 export const fuzzify = (inputs, mode) => {
   const sets = createFuzzySets(mode);
+
   const result = {
     speed: {},
     rpm: {},
     brake: {},
-    throttle: {},
-    control: {}
+    throttle: {}
   };
 
   for (const [setName, func] of Object.entries(sets.speed)) {
@@ -122,9 +104,6 @@ export const fuzzify = (inputs, mode) => {
   for (const [setName, func] of Object.entries(sets.throttle)) {
     result.throttle[setName] = func(inputs.throttle);
   }
-
-  result.control.urgentDownshift = sets.urgentDownshift(inputs.brake, inputs.speed);
-  result.control.gentleDownshift = sets.gentleDownshift(inputs.throttle, inputs.speed);
 
   return result;
 };
